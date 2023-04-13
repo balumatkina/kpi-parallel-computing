@@ -5,16 +5,26 @@ public class OddNumberCounter {
     private int oddCount;
     private int maxOdd;
     private Semaphore mutex;
+    public long mutexWaitTime;
+    public int nThreads;
 
     public OddNumberCounter(int[] array) {
         this.array = array;
         this.oddCount = 0;
-        this.maxOdd = Integer.MIN_VALUE;
+        this.maxOdd = 0;
         this.mutex = new Semaphore(1);
+        this.nThreads = Runtime.getRuntime().availableProcessors();
+    }
+
+    public int getOddCount() {
+        return oddCount;
+    }
+
+    public int getMaxOdd() {
+        return maxOdd;
     }
 
     public void countOdds() {
-        int nThreads = Runtime.getRuntime().availableProcessors();
         ExecutorService executor = Executors.newFixedThreadPool(nThreads);
 
         int chunkSize = array.length / nThreads;
@@ -33,23 +43,15 @@ public class OddNumberCounter {
         }
     }
 
-    public int getOddCount() {
-        return oddCount;
-    }
 
-    public int getMaxOdd() {
-        return maxOdd;
-    }
 
     private class OddNumberCounterTask implements Runnable {
         private int startIndex;
         private int endIndex;
-        private long mutexWaitTime;
 
         public OddNumberCounterTask(int startIndex, int endIndex) {
             this.startIndex = startIndex;
             this.endIndex = endIndex;
-            this.mutexWaitTime = 0;
         }
 
         @Override
@@ -60,8 +62,7 @@ public class OddNumberCounter {
                     try {
                         mutex.acquire();
                         long endWaitTime = System.nanoTime();
-                        long waitTime = endWaitTime - startWaitTime;
-                        mutexWaitTime += waitTime;
+                        mutexWaitTime += endWaitTime - startWaitTime;
                         oddCount++;
                         if (array[i] > maxOdd) {
                             maxOdd = array[i];
@@ -73,10 +74,6 @@ public class OddNumberCounter {
                     }
                 }
             }
-        }
-
-        public long getMutexWaitTime() {
-            return mutexWaitTime;
         }
     }
 }
